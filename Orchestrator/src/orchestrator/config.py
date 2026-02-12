@@ -54,13 +54,16 @@ class MCPServerConfig:
     """URL endpoint for the MCP server (e.g., http://localhost:8000/sse)."""
     
     transport: str = "sse"
-    """Transport type: 'sse', 'stdio', or 'streamable-http'."""
+    """Transport type: 'sse', 'stdio', 'streamable-http', or 'http'."""
     
     enabled: bool = True
     """Whether this MCP server is enabled."""
     
     description: str = ""
     """Description of what this MCP server provides."""
+    
+    headers: dict = field(default_factory=dict)
+    """Optional HTTP headers for authentication (e.g., Authorization: Bearer token)."""
 
 
 @dataclass
@@ -137,6 +140,21 @@ class OrchestratorConfig:
                 transport="sse",
                 enabled=True,
                 description="Kubernetes cluster management - pods, deployments, services, configmaps, secrets, nodes, events, and more"
+            ))
+        
+        # GitHub MCP Server (Remote HTTP)
+        github_url = os.getenv("GITHUB_MCP_URL", "https://api.githubcopilot.com/mcp/")
+        github_enabled = os.getenv("GITHUB_MCP_ENABLED", "false").lower() == "true"
+        github_token = os.getenv("GITHUB_TOKEN", "")
+        
+        if github_enabled and github_token:
+            servers.append(MCPServerConfig(
+                name="github",
+                url=github_url,
+                transport="http",
+                enabled=True,
+                description="GitHub operations - repositories, issues, pull requests, commits, branches, releases",
+                headers={"Authorization": f"Bearer {github_token}"}
             ))
         
         # Add more MCP servers here as needed...

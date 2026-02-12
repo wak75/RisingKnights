@@ -90,6 +90,10 @@ services:
       - JENKINS_MCP_ENABLED=true
       - KUBERNETES_MCP_URL=http://kubernetes-mcp:8001/sse
       - KUBERNETES_MCP_ENABLED=true
+      # GitHub MCP Settings (Remote HTTP Server)
+      - GITHUB_MCP_URL=${GITHUB_MCP_URL:-https://api.githubcopilot.com/mcp/}
+      - GITHUB_MCP_ENABLED=${GITHUB_MCP_ENABLED:-false}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
     depends_on:
       jenkins-mcp:
         condition: service_healthy

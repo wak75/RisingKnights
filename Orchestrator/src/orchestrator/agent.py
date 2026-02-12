@@ -4,7 +4,7 @@ import asyncio
 from typing import Optional, List, Dict, Any
 
 from google.adk.agents import Agent, ParallelAgent, SequentialAgent
-from google.adk.tools.mcp_tool import McpToolset, SseConnectionParams
+from google.adk.tools.mcp_tool import McpToolset, SseConnectionParams, StreamableHTTPConnectionParams
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
@@ -149,6 +149,14 @@ Always structure your findings as:
         """Connect to a single MCP server and return the toolset."""
         if server_config.transport == "sse":
             connection_params = SseConnectionParams(url=server_config.url)
+            toolset = McpToolset(connection_params=connection_params)
+            return toolset
+        elif server_config.transport in ("http", "streamable-http"):
+            # HTTP transport for remote MCP servers (like GitHub)
+            connection_params = StreamableHTTPConnectionParams(
+                url=server_config.url,
+                headers=server_config.headers if server_config.headers else None
+            )
             toolset = McpToolset(connection_params=connection_params)
             return toolset
         else:
