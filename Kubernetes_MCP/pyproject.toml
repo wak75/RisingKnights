@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kubernetes-mcp-server"
+version = "1.0.0"
+description = "MCP Server for Kubernetes integration with comprehensive tools for managing clusters, pods, deployments, and more"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.11.3",
+    "uvicorn[standard]>=0.27.0",
+    "kubernetes>=28.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "httpx>=0.25.0",
+    "aiofiles>=23.0.0",
+    "pyyaml>=6.0.0",
+    "rich>=13.0.0",
+    "typer>=0.9.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/kubernetes-mcp-server"
+Repository = "https://github.com/yourusername/kubernetes-mcp-server"
+
+[project.scripts]
+kubernetes-mcp-server = "kubernetes_mcp_server.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+select = ["E", "W", "F", "I", "B", "C4", "UP"]

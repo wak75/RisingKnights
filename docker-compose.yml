@@ -1,0 +1,124 @@
+# Docker Compose for Orchestrator Agent with MCP Servers
+# This file orchestrates all services for local development and GCP deployment
+
+version: '3.8'
+
+services:
+  # ==============================================================================
+  # Jenkins MCP Server - Manages Jenkins CI/CD operations
+  # ==============================================================================
+  jenkins-mcp:
+    build:
+      context: ./Jenkins_MCP
+      dockerfile: Dockerfile
+      target: production
+    container_name: jenkins-mcp
+    ports:
+      - "8000:8000"
+    environment:
+      # Jenkins connection settings (override with your actual Jenkins server)
+      - JENKINS_URL=${JENKINS_URL:-http://jenkins:8080}
+      - JENKINS_USER=${JENKINS_USER:-admin}
+      - JENKINS_TOKEN=${JENKINS_TOKEN:-your-jenkins-token}
+      # MCP Server settings
+      - JENKINS_MCP_HOST=0.0.0.0
+      - JENKINS_MCP_PORT=8000
+      - JENKINS_MCP_TRANSPORT=sse
+    networks:
+      - orchestrator-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/ > /dev/null || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ==============================================================================
+  # Kubernetes MCP Server - Manages Kubernetes cluster operations
+  # ==============================================================================
+  kubernetes-mcp:
+    build:
+      context: ./Kubernetes_MCP
+      dockerfile: Dockerfile
+      target: production
+    container_name: kubernetes-mcp
+    ports:
+      - "8001:8001"
+    environment:
+      # Kubernetes connection settings
+      - K8S_NAMESPACE=${K8S_NAMESPACE:-default}
+      - K8S_IN_CLUSTER=${K8S_IN_CLUSTER:-false}
+      - KUBECONFIG=/root/.kube/config
+      # MCP Server settings
+      - K8S_MCP_HOST=0.0.0.0
+      - K8S_MCP_PORT=8001
+      - K8S_MCP_TRANSPORT=sse
+    volumes:
+      # Mount kubeconfig for local development (optional for GCP)
+      - ${HOME}/.kube:/root/.kube:ro
+    networks:
+      - orchestrator-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/ > /dev/null || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ==============================================================================
+  # Orchestrator Agent - Main web UI and Google ADK agent
+  # ==============================================================================
+  orchestrator:
+    build:
+      context: ./Orchestrator
+      dockerfile: Dockerfile
+      target: production
+    container_name: orchestrator
+    ports:
+      - "8080:8080"
+    environment:
+      # Google API Key (REQUIRED - set in .env file or environment)
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      # Model settings
+      - ORCHESTRATOR_MODEL=${ORCHESTRATOR_MODEL:-gemini-2.0-flash}
+      - ORCHESTRATOR_HOST=0.0.0.0
+      - ORCHESTRATOR_PORT=8080
+      # MCP Server URLs (using Docker service names for internal networking)
+      - JENKINS_MCP_URL=http://jenkins-mcp:8000/sse
+      - JENKINS_MCP_ENABLED=true
+      - KUBERNETES_MCP_URL=http://kubernetes-mcp:8001/sse
+      - KUBERNETES_MCP_ENABLED=true
+    depends_on:
+      jenkins-mcp:
+        condition: service_healthy
+      kubernetes-mcp:
+        condition: service_healthy
+    networks:
+      - orchestrator-network
+    restart: unless-stopped
+    volumes:
+      # Persist sessions
+      - orchestrator-sessions:/app/sessions
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+  orchestrator-network:
+    driver: bridge
+    name: orchestrator-network
+
+# ==============================================================================
+# Volumes
+# ==============================================================================
+volumes:
+  orchestrator-sessions:
+    name: orchestrator-sessions
